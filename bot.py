@@ -6,6 +6,22 @@ from flask import Flask, request
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 app = Flask(__name__)
 
+def bypass_link(short_url):
+    try:
+        # Try using adskip.sryze.cc API
+        response = requests.post(
+            "https://adskip.sryze.cc/api/bypass",
+            json={"url": short_url},
+            timeout=30
+        )
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("bypassed_url") or data.get("url") or data.get("result") or "❌ No URL found"
+        else:
+            return f"❌ Error: {response.status_code}"
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
+
 def send_message(chat_id, text):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
@@ -42,8 +58,7 @@ def webhook():
         short_url = parts[1]
         send_message(chat_id, "⏳ Processing... (may take 20-30 seconds)")
 
-        # Temporary result (add real bypass logic later)
-        result = f"Bypassed: {short_url}"
+        result = bypass_link(short_url)
 
         send_message(chat_id,
             f"❤️ Original Link :✅ {short_url}\n"
