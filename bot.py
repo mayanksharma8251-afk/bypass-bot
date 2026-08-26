@@ -1,4 +1,5 @@
 import os
+import asyncio
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
@@ -27,12 +28,12 @@ async def skip(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Powered By @CLASSYNETWORK"
     )
 
-def main():
+async def main():
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("skip", skip))
     print("✅ Bot is running on Render...")
-    app.run_polling()
+    await app.run_polling()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
