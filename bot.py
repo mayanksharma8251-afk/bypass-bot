@@ -7,11 +7,23 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 app = Flask(__name__)
 
 def bypass_link(short_url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://adskip.sryze.cc/",
+        "Origin": "https://adskip.sryze.cc",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin"
+    }
     try:
-        # Try using adskip.sryze.cc API
         response = requests.post(
             "https://adskip.sryze.cc/api/bypass",
             json={"url": short_url},
+            headers=headers,
             timeout=30
         )
         if response.status_code == 200:
