@@ -1,36 +1,45 @@
 import os
-import json
-import requests
+import time
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
 from flask import Flask, request
+import requests
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 app = Flask(__name__)
 
-def bypass_link(short_url):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/plain, */*",
-        "Referer": "https://adskip.sryze.cc/",
-        "Origin": "https://adskip.sryze.cc",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
-        "Sec-Fetch-Dest": "empty",
-        "Sec-Fetch-Mode": "cors",
-        "Sec-Fetch-Site": "same-origin"
-    }
+def bypass_with_browser(short_url):
     try:
-        response = requests.post(
-            "https://adskip.sryze.cc/api/bypass",
-            json={"url": short_url},
-            headers=headers,
-            timeout=30
+        options = Options()
+        options.add_argument("--headless")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--window-size=1920,1080")
+        options.binary_location = "/usr/bin/google-chrome"
+
+        driver = webdriver.Chrome(options=options)
+
+        driver.get("https://adskip.sryze.cc")
+
+        input_field = WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.XPATH, "//input[@type='text']"))
         )
-        if response.status_code == 200:
-            data = response.json()
-            return data.get("bypassed_url") or data.get("url") or data.get("result") or "❌ No URL found"
-        else:
-            return f"❌ Error: {response.status_code}"
+        input_field.send_keys(short_url)
+
+        bypass_btn = driver.find_element(By.XPATH, "//button[contains(text(), 'Bypass')]")
+        bypass_btn.click()
+
+        result_elem = WebDriverWait(driver, 30).until(
+            EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'result')]//a"))
+        )
+        bypassed_url = result_elem.get_attribute("href")
+        driver.quit()
+        return bypassed_url
+
     except Exception as e:
         return f"❌ Error: {str(e)}"
 
@@ -68,9 +77,9 @@ def webhook():
             return "OK", 200
 
         short_url = parts[1]
-        send_message(chat_id, "⏳ Processing... (may take 20-30 seconds)")
+        send_message(chat_id, "⏳ Processing... (may take 30-45 seconds)")
 
-        result = bypass_link(short_url)
+        result = bypass_with_browser(short_url)
 
         send_message(chat_id,
             f"❤️ Original Link :✅ {short_url}\n"
