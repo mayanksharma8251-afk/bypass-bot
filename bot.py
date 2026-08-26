@@ -1,45 +1,23 @@
 import os
-import time
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
-from flask import Flask, request
+import re
 import requests
+from flask import Flask, request
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 app = Flask(__name__)
 
-def bypass_with_browser(short_url):
+def bypass_link(short_url):
     try:
-        options = Options()
-        options.add_argument("--headless")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--window-size=1920,1080")
-        options.binary_location = "/usr/bin/google-chrome"
-
-        driver = webdriver.Chrome(options=options)
-
-        driver.get("https://adskip.sryze.cc")
-
-        input_field = WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.XPATH, "//input[@type='text']"))
+        # Try bypass.pm API
+        response = requests.get(
+            f"https://bypass.pm/api/bypass?url={short_url}",
+            timeout=30
         )
-        input_field.send_keys(short_url)
-
-        bypass_btn = driver.find_element(By.XPATH, "//button[contains(text(), 'Bypass')]")
-        bypass_btn.click()
-
-        result_elem = WebDriverWait(driver, 30).until(
-            EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'result')]//a"))
-        )
-        bypassed_url = result_elem.get_attribute("href")
-        driver.quit()
-        return bypassed_url
-
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("bypassed") or data.get("url") or data.get("result") or "❌ No URL found"
+        else:
+            return f"❌ Error: {response.status_code}"
     except Exception as e:
         return f"❌ Error: {str(e)}"
 
@@ -65,28 +43,28 @@ def webhook():
     chat_id = message["chat"]["id"]
     text = message.get("text", "")
 
+    # /start command
     if text == "/start":
         send_message(chat_id,
             "❤️ SHORTNER BYPASS BOT BY @CLASSYNETWORK\n\n"
-            "Send /skip <link> to bypass any shortened URL."
+            "Simply send me any shortened link.\n"
+            "Example: https://bit.ly/xyz123\n\n"
+            "I'll bypass it instantly!"
         )
-    elif text.startswith("/skip"):
-        parts = text.split(maxsplit=1)
-        if len(parts) < 2:
-            send_message(chat_id, "❌ Please provide a link.\nExample: /skip https://bit.ly/xyz123")
-            return "OK", 200
+        return "OK", 200
 
-        short_url = parts[1]
-        send_message(chat_id, "⏳ Processing... (may take 30-45 seconds)")
-
-        result = bypass_with_browser(short_url)
-
+    # DIRECT LINK — NO /skip COMMAND
+    if re.match(r'^https?://', text):
+        send_message(chat_id, "⏳ Processing your link... (may take 10-15 seconds)")
+        result = bypass_link(text)
         send_message(chat_id,
-            f"❤️ Original Link :✅ {short_url}\n"
+            f"❤️ Original Link :✅ {text}\n"
             f"Bypassed Link :✅ {result}\n"
             f"─────────────────\n"
             f"Powered By @CLASSYNETWORK"
         )
+    else:
+        send_message(chat_id, "❌ Please send a valid URL starting with http:// or https://")
 
     return "OK", 200
 
