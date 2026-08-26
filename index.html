@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bypass Bot</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #0a0a0a; color: white; }
+    .result { background: #1a1a2e; padding: 15px; border-radius: 10px; }
+    .link { color: #6c63ff; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <h2>🔗 Bypassing...</h2>
+  <div id="result" class="result">⏳ Processing...</div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const link = params.get('link');
+    if (link) {
+      fetch('https://adskip.sryze.cc/api/bypass?url=' + encodeURIComponent(link))
+        .then(r => r.json())
+        .then(data => {
+          const bypassed = data.bypassed_url || data.url || data.result || '❌ Failed';
+          document.getElementById('result').innerHTML = `
+            <div>Original: <span class="link">${link}</span></div>
+            <div>Bypassed: <span class="link">${bypassed}</span></div>
+          `;
+          Telegram.WebApp.sendData(JSON.stringify({bypassed: bypassed}));
+        })
+        .catch(() => {
+          document.getElementById('result').innerHTML = '❌ Failed — captcha required';
+        });
+    } else {
+      document.getElementById('result').innerHTML = '❌ No link provided';
+    }
+  </script>
+</body>
+</html>
